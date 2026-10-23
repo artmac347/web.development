@@ -1,123 +1,314 @@
-const $ = (s) => document.querySelector(s);
+const progressBar = document.getElementById("progress");
+const menuBtn = document.getElementById("menuBtn");
+const nav = document.getElementById("nav");
 
-/* progress bar + sticky header */
-const header = $("#header"), bar = $("#progress");
-addEventListener("scroll", () => {
-  const max = document.documentElement.scrollHeight - innerHeight;
-  bar.style.width = (scrollY / max) * 100 + "%";
-  header.classList.toggle("scrolled", scrollY > 60);
-}, { passive: true });
-
-/* mobile menu */
-const menuBtn = $("#menuBtn"), nav = $("#nav");
-menuBtn.addEventListener("click", () => {
-  const open = nav.classList.toggle("open");
-  menuBtn.setAttribute("aria-expanded", open);
-});
-nav.addEventListener("click", (e) => { if (e.target.tagName === "A") nav.classList.remove("open"); });
-
-/* reveal + active nav link */
-const io = new IntersectionObserver((es) => es.forEach((e) => {
-  if (e.isIntersecting) { e.target.classList.add("is-visible"); io.unobserve(e.target); }
-}), { threshold: 0.15 });
-document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
-
-const links = [...nav.querySelectorAll("a")];
-const spy = new IntersectionObserver((es) => es.forEach((e) => {
-  if (e.isIntersecting) links.forEach((a) => a.classList.toggle("active", a.hash === "#" + e.target.id));
-}), { rootMargin: "-45% 0px -50% 0px" });
-links.forEach((a) => { const s = document.querySelector(a.hash); if (s) spy.observe(s); });
-
-/* typewriter */
-const codeLines = ["<!DOCTYPE html>", "<html>", "<head>", "  <title>My first page</title>", "</head>", "<body>", "  <h1>Hello, world!</h1>", "  <p>Welcome to the web.</p>", "</body>", "</html>"];
-const target = $("#typewriter");
-let run = 0;
-function typeCode() {
-  const id = ++run;
-  target.innerHTML = "";
-  let l = 0, c = 0, span = null;
-  (function tick() {
-    if (id !== run || l >= codeLines.length) return;
-    if (c === 0) { span = document.createElement("span"); span.className = "code-line"; target.appendChild(span); }
-    const cursor = target.querySelector(".cursor");
-    if (cursor) cursor.remove();
-    span.textContent = codeLines[l].slice(0, ++c);
-    const cur = document.createElement("span");
-    cur.className = "cursor"; cur.textContent = "|";
-    span.appendChild(cur);
-    if (c >= codeLines[l].length) { l++; c = 0; }
-    setTimeout(tick, 55);
-  })();
-}
-$("#replay").addEventListener("click", typeCode);
-new IntersectionObserver((es, o) => { if (es[0].isIntersecting) { typeCode(); o.disconnect(); } }, { threshold: 0.4 }).observe(target);
-
-/* frontend tabs */
-const tabData = {
-  html: { text: "HTML builds the structure: headings, paragraphs, links.", code: "<h1>My heading</h1>\n<p>Some text.</p>\n<a href=\"#\">A link</a>" },
-  css: { text: "CSS controls how things look: color, size, spacing.", code: "h1 {\n  color: blue;\n  font-size: 3rem;\n}" },
-  js: { text: "JavaScript makes the page react to people.", code: "document.querySelector(\"h1\")\n  .addEventListener(\"click\", () => {\n    alert(\"Hi!\");\n  });" }
+const updateProgress = () => {
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+  progressBar.style.width = `${progress}%`;
 };
-function showTab(key) {
-  document.querySelectorAll(".tab").forEach((t) => {
-    const on = t.dataset.tab === key;
-    t.classList.toggle("is-active", on);
-    t.setAttribute("aria-selected", on);
+
+window.addEventListener("scroll", updateProgress);
+window.addEventListener("load", updateProgress);
+
+menuBtn.addEventListener("click", () => {
+  nav.classList.toggle("open");
+  const expanded = menuBtn.getAttribute("aria-expanded") === "true";
+  menuBtn.setAttribute("aria-expanded", String(!expanded));
+});
+
+nav.querySelectorAll("a").forEach((link) => {
+  link.addEventListener("click", () => {
+    nav.classList.remove("open");
+    menuBtn.setAttribute("aria-expanded", "false");
   });
-  $("#tabText").textContent = tabData[key].text;
-  $("#tabCode").textContent = tabData[key].code;
-}
-document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => showTab(t.dataset.tab)));
-showTab("html");
-
-$("#copyBtn").addEventListener("click", async (e) => {
-  try { await navigator.clipboard.writeText($("#tabCode").textContent); e.target.textContent = "Copied"; }
-  catch { e.target.textContent = "Copy failed"; }
-  setTimeout(() => (e.target.textContent = "Copy code"), 1500);
 });
 
-/* try-it color */
-$("#colorInput").addEventListener("input", (e) => {
-  const v = e.target.value.trim();
-  if (CSS.supports("color", v)) $("#tryDemo").style.color = v;
+document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+  anchor.addEventListener("click", function (e) {
+    const targetId = this.getAttribute("href");
+    if (!targetId || targetId === "#") return;
+
+    const target = document.querySelector(targetId);
+    if (!target) return;
+
+    e.preventDefault();
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  });
 });
 
-/* quiz */
-const quiz = [
-  { q: "Which language gives a page its structure?", o: ["HTML", "CSS", "Python"], a: 0 },
-  { q: "Which one changes colors and spacing?", o: ["JavaScript", "CSS", "Node.js"], a: 1 },
-  { q: "Where does the backend run?", o: ["In the browser", "On a server", "In the CSS file"], a: 1 }
+const revealItems = document.querySelectorAll(".reveal");
+
+const revealObserver = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("visible");
+      }
+    });
+  },
+  {
+    threshold: 0.12,
+    rootMargin: "0px 0px -30px 0px"
+  }
+);
+
+revealItems.forEach((item) => {
+  revealObserver.observe(item);
+});
+
+const codeLines = [
+  "<!DOCTYPE html>",
+  "<html lang='en'>",
+  "  <head>",
+  "    <title>Clifford</title>",
+  "  </head>",
+  "  <body>",
+  "    <main>",
+  "      <h1>Hello, world!</h1>",
+  "      <p>Build something amazing.</p>",
+  "    </main>",
+  "  </body>",
+  "</html>"
 ];
-let qi = 0, score = 0;
-function showQ() {
-  const item = quiz[qi];
-  $("#quizQ").textContent = item.q;
-  $("#quizFb").textContent = "";
-  $("#quizNext").hidden = true;
-  const box = $("#quizOpts");
-  box.innerHTML = "";
-  item.o.forEach((text, i) => {
-    const b = document.createElement("button");
-    b.textContent = text;
-    b.addEventListener("click", () => answer(i, b));
-    box.appendChild(b);
+
+const typewriter = document.getElementById("typewriter");
+const replayBtn = document.getElementById("replay");
+
+let runId = 0;
+
+function startTypewriter() {
+  const id = ++runId;          // kapag pinindot ulit ang Replay, titigil ang luma
+  typewriter.textContent = ""; // textContent para hindi ma-render ang mga tag
+  let lineIndex = 0;
+  let typeIndex = 0;
+  let lineEl = null;
+
+  function tick() {
+    if (id !== runId || lineIndex >= codeLines.length) return;
+
+    const line = codeLines[lineIndex];
+
+    if (typeIndex === 0) {
+      lineEl = document.createElement("div");
+      lineEl.style.minHeight = "1.8em";
+      lineEl.style.whiteSpace = "pre";
+      typewriter.appendChild(lineEl);
+    }
+
+    typeIndex++;
+    lineEl.textContent = line.slice(0, typeIndex);
+
+    if (typeIndex >= line.length) {
+      lineIndex++;
+      typeIndex = 0;
+      setTimeout(tick, 160);
+    } else {
+      setTimeout(tick, 28);
+    }
+  }
+
+  tick();
+}
+
+replayBtn.addEventListener("click", startTypewriter);
+
+// Magsisimula kapag nakita na ang panel sa screen
+new IntersectionObserver((entries, observer) => {
+  if (entries[0].isIntersecting) {
+    startTypewriter();
+    observer.disconnect();
+  }
+}, { threshold: 0.4 }).observe(typewriter);
+
+const tabs = {
+  html: {
+    title: "HTML builds the structure of a page.",
+    code: `<section>\n  <h1>Hello, world!</h1>\n  <p>Welcome to my site.</p>\n</section>`
+  },
+  css: {
+    title: "CSS makes the page beautiful and responsive.",
+    code: `body {\n  background: #0f172a;\n  color: white;\n  font-family: Arial, sans-serif;\n}\n\nh1 {\n  color: tomato;\n  text-align: center;\n}`
+  },
+  js: {
+    title: "JavaScript adds behavior and interaction.",
+    code: `const button = document.querySelector('button');\nbutton.addEventListener('click', () => {\n  alert('Hello, developer!');\n});`
+  }
+};
+
+const tabButtons = document.querySelectorAll(".tab");
+const tabText = document.getElementById("tabText");
+const tabCode = document.getElementById("tabCode");
+const copyBtn = document.getElementById("copyBtn");
+
+const setActiveTab = (tabKey) => {
+  const current = tabs[tabKey];
+  tabButtons.forEach((button) => {
+    const active = button.dataset.tab === tabKey;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
   });
-}
-function answer(i, btn) {
-  const ok = i === quiz[qi].a;
-  if (ok) score++;
-  btn.classList.add(ok ? "right" : "wrong");
-  [...$("#quizOpts").children].forEach((b, n) => { b.disabled = true; if (n === quiz[qi].a) b.classList.add("right"); });
-  $("#quizFb").textContent = ok ? "Correct!" : "Not quite. The green answer is correct.";
-  $("#quizNext").textContent = qi === quiz.length - 1 ? "See score" : "Next question";
-  $("#quizNext").hidden = false;
-}
-$("#quizNext").addEventListener("click", () => {
-  if (qi < quiz.length - 1) { qi++; showQ(); return; }
-  $("#quizQ").textContent = `You got ${score} of ${quiz.length}.`;
-  $("#quizOpts").innerHTML = "";
-  $("#quizFb").textContent = "Nice work. Keep building small projects.";
-  $("#quizNext").textContent = "Try again";
-  $("#quizNext").onclick = () => location.reload();
+
+  tabText.textContent = current.title;
+  tabCode.textContent = current.code;
+};
+
+tabButtons.forEach((button) => {
+  button.addEventListener("click", () => setActiveTab(button.dataset.tab));
 });
-showQ();
+
+copyBtn.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(tabCode.textContent);
+    copyBtn.textContent = "Copied!";
+    setTimeout(() => {
+      copyBtn.textContent = "Copy code";
+    }, 1200);
+  } catch {
+    copyBtn.textContent = "Copy failed";
+    setTimeout(() => {
+      copyBtn.textContent = "Copy code";
+    }, 1200);
+  }
+});
+
+const colorInput = document.getElementById("colorInput");
+const tryDemo = document.getElementById("tryDemo");
+
+const updateDemoColor = () => {
+  const color = colorInput.value.trim();
+  if (!color) return;
+  tryDemo.style.color = color;
+  tryDemo.style.background = `linear-gradient(135deg, ${color}22, rgba(139, 92, 246, 0.12))`;
+};
+
+colorInput.addEventListener("input", updateDemoColor);
+setActiveTab("html");
+updateDemoColor();
+
+const toolCards = document.querySelectorAll(".tool-card");
+const toolDetailBadge = document.getElementById("toolDetailBadge");
+const toolDetailKind = document.getElementById("toolDetailKind");
+const toolDetailName = document.getElementById("toolDetailName");
+const toolDetailText = document.getElementById("toolDetailText");
+
+const updateToolDetail = (card) => {
+  toolCards.forEach((item) => {
+    item.classList.toggle("is-active", item === card);
+  });
+
+  toolDetailBadge.textContent = card.dataset.badge;
+  toolDetailKind.textContent = card.dataset.kind;
+  toolDetailName.textContent = card.dataset.name;
+  toolDetailText.textContent = card.dataset.description;
+};
+
+toolCards.forEach((card) => {
+  card.addEventListener("click", () => updateToolDetail(card));
+});
+
+const quizData = [
+  {
+    question: "What does HTML do in web development?",
+    options: [
+      "Adds styling and animation",
+      "Structures the content of a web page",
+      "Runs server logic",
+      "Creates databases"
+    ],
+    answer: 1
+  },
+  {
+    question: "Which language controls the look and layout of a webpage?",
+    options: ["Python", "CSS", "MySQL", "Git"],
+    answer: 1
+  },
+  {
+    question: "What is the purpose of JavaScript?",
+    options: [
+      "To create the webpage structure",
+      "To add interactivity and behavior",
+      "To store files on the server",
+      "To format image files"
+    ],
+    answer: 1
+  }
+];
+
+const quizQ = document.getElementById("quizQ");
+const quizOpts = document.getElementById("quizOpts");
+const quizFb = document.getElementById("quizFb");
+const quizNext = document.getElementById("quizNext");
+
+let currentQuestion = 0;
+let answered = false;
+
+const renderQuestion = () => {
+  const item = quizData[currentQuestion];
+  quizQ.textContent = `${currentQuestion + 1}. ${item.question}`;
+  quizOpts.innerHTML = "";
+
+  item.options.forEach((option, index) => {
+    const button = document.createElement("button");
+    button.className = "quiz-option";
+    button.textContent = option;
+    button.addEventListener("click", () => handleAnswer(index, button));
+    quizOpts.appendChild(button);
+  });
+
+  quizFb.textContent = "";
+  quizFb.className = "quiz-feedback";
+  quizNext.hidden = true;
+  answered = false;
+};
+
+const handleAnswer = (index) => {
+  if (answered) return;
+  answered = true;
+
+  const item = quizData[currentQuestion];
+  const optionButtons = [...quizOpts.children];
+
+  optionButtons.forEach((button, buttonIndex) => {
+    button.disabled = true;
+
+    if (buttonIndex === item.answer) {
+      button.classList.add("correct");
+    }
+
+    if (buttonIndex === index && buttonIndex !== item.answer) {
+      button.classList.add("wrong");
+    }
+  });
+
+  if (index === item.answer) {
+    quizFb.textContent = "Correct! Nice job.";
+    quizFb.classList.add("success");
+  } else {
+    quizFb.textContent = `Not quite. The correct answer is: ${item.options[item.answer]}.`;
+    quizFb.classList.add("error");
+  }
+
+  quizNext.hidden = false;
+};
+
+quizNext.addEventListener("click", () => {
+  currentQuestion++;
+
+  if (currentQuestion < quizData.length) {
+    renderQuestion();
+  } else {
+    quizQ.textContent = "You finished the quiz!";
+    quizOpts.innerHTML = "";
+    quizFb.textContent = "Amazing work! Keep practicing and keep building.";
+    quizFb.classList.remove("error");
+    quizFb.classList.add("success");
+    quizNext.hidden = true;
+  }
+});
+
+renderQuestion();
